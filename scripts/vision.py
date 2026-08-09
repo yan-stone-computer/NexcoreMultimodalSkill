@@ -130,6 +130,9 @@ def analyze_with_engine(engine, images: list[Path], prompt: str, timeout: int, t
 
 def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdout()
+    # Load persisted API keys from ~/.vision-reader/config.json (if any).
+    # Real env vars are never overridden; engines keep reading env vars.
+    common.ensure_config_loaded()
     args = build_parser().parse_args(argv)
 
     try:

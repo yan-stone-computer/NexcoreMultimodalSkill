@@ -52,6 +52,91 @@ def get_api_key(*env_names: str) -> str | None:
     return None
 
 
+# --------------------------------------------------------------------------
+# Persisted API-key config (~/.vision-reader/config.json)
+#
+# Keys stored here are injected into os.environ by ensure_config_loaded()
+# before engine selection, so every engine keeps reading env vars unchanged.
+# Real environment variables always win over the config file.
+# --------------------------------------------------------------------------
+
+def config_path() -> Path:
+    """Path of the persisted key config (override with VISION_CONFIG)."""
+    override = os.environ.get("VISION_CONFIG", "").strip()
+    if override:
+        return Path(override).expanduser()
+    return Path.home() / ".vision-reader" / "config.json"
+
+
+def load_config() -> dict:
+    """Load the whole config file; return {} when missing/corrupt."""
+    try:
+        data = json.loads(config_path().read_text("utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def save_config(data: dict) -> Path:
+    """Persist the config file (creates parent dirs as needed)."""
+    path = config_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), "utf-8")
+    return path
+
+
+def stored_keys() -> dict:
+    """Return {ENV_VAR: key} currently persisted in the config file."""
+    keys = load_config().get("keys", {})
+    return keys if isinstance(keys, dict) else {}
+
+
+def set_stored_key(env_name: str, value: str) -> Path:
+    """Persist one API key under the given env-var name. Returns the config path."""
+    env_name = env_name.strip().upper()
+    value = value.strip()
+    if not env_name or not value:
+        raise VisionError("set_stored_key requires a non-empty env name and value")
+    if any(char in env_name for char in " \t\n\r\"'\\"):
+        raise VisionError(f"Invalid env var name: {env_name!r}")
+    data = load_config()
+    keys = data.get("keys")
+    if not isinstance(keys, dict):
+        keys = {}
+    keys[env_name] = value
+    data["keys"] = keys
+    data["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    return save_config(data)
+
+
+def delete_stored_key(env_name: str) -> bool:
+    """Remove a persisted key. Returns True when it existed and was removed."""
+    env_name = env_name.strip().upper()
+    data = load_config()
+    keys = data.get("keys")
+    if not isinstance(keys, dict) or env_name not in keys:
+        return False
+    del keys[env_name]
+    data["keys"] = keys
+    data["updated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    save_config(data)
+    return True
+
+
+def ensure_config_loaded() -> dict:
+    """Inject persisted keys into os.environ (never overriding real env vars).
+
+    Call once at startup, before engine selection. Returns the injected
+    {env_var: key} map (empty when nothing was injected).
+    """
+    injected: dict = {}
+    for env_name, value in stored_keys().items():
+        if value and not os.environ.get(env_name):
+            os.environ[env_name] = value
+            injected[env_name] = value
+    return injected
+
+
 def http_request(
     method: str,
     url: str,

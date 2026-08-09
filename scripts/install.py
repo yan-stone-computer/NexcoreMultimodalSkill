@@ -22,8 +22,8 @@ from pathlib import Path
 SKILL_NAME = "model-vision-skill"
 SKILL_DIR = Path(__file__).resolve().parent.parent  # repo root (contains SKILL.md)
 
-# Directories we never copy into a skill install.
-EXCLUDE = {".git", ".workbuddy", "__pycache__", ".idea", ".vscode", "tests", "assets"}
+# Directories/files we never copy into a skill install.
+EXCLUDE = {".git", ".workbuddy", "__pycache__", ".idea", ".vscode", "tests", "assets", "config.json"}
 
 
 def home() -> Path:
@@ -148,12 +148,14 @@ def main(argv: list[str] | None = None) -> int:
 
     if ok:
         print(
-            "\n[model-vision-skill] Next: set at least one free API key, e.g.\n"
-            "  export ZHIPUAI_API_KEY=your-key       # GLM (free forever)\n"
-            "  export GEMINI_API_KEY=your-key        # ~1500 req/day\n"
-            "  export DASHSCOPE_API_KEY=your-key     # Qwen-VL\n"
-            "  export SILICONFLOW_API_KEY=your-key   # open models\n"
-            "  export MINERU_TOKEN=your-token        # optional, 1000 pages/day\n"
+            "\n[model-vision-skill] Next: give the model at least one free API key.\n"
+            "The model can persist keys for you anytime with:\n"
+            f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} glm sk-xxxx       # GLM (free forever)\n"
+            f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} gemini sk-xxxx    # ~1500 req/day\n"
+            f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} qwen sk-xxxx      # Qwen-VL\n"
+            f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} siliconflow sk-xxxx\n"
+            f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} mineru your-token # optional\n"
+            "Keys are stored in ~/.vision-reader/config.json and loaded automatically.\n"
             "MinerU free tier and local RapidOCR need no key at all."
         )
     return 0 if ok else 1

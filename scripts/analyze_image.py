@@ -121,6 +121,14 @@ def extract_text(response: dict) -> str:
 
 
 def main() -> int:
+    # Load persisted keys from ~/.vision-reader/config.json (see scripts/set_key.py).
+    try:
+        from engines.common import ensure_config_loaded
+
+        ensure_config_loaded()
+    except Exception:
+        pass
+
     parser = argparse.ArgumentParser(description="Analyze an image with GLM-4.6V-Flash.")
     parser.add_argument("image", help="Local image path or HTTP(S) image URL.")
     parser.add_argument(

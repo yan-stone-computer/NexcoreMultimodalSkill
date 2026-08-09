@@ -47,9 +47,37 @@ python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
 - Explicit engine (e.g. `--engine gemini`): only that engine, unless `--fallback`
 - Reorder priority via env var: `VISION_ENGINE_PRIORITY="gemini,glm,mineru,local"`
 
+## API keys — stored in the skill config (recommended)
+
+When the user tells you an API key (or asks you to save one), **persist it with
+`set_key.py`** instead of printing it back:
+
+```bash
+python <skill-dir>/scripts/set_key.py glm sk-xxxx          # GLM / Zhipu (free forever)
+python <skill-dir>/scripts/set_key.py qwen sk-xxxx         # Qwen / DashScope
+python <skill-dir>/scripts/set_key.py siliconflow sk-xxxx  # SiliconFlow
+python <skill-dir>/scripts/set_key.py gemini sk-xxxx       # Gemini
+python <skill-dir>/scripts/set_key.py mineru your-token    # MinerU (optional)
+```
+
+- Keys are saved to `~/.vision-reader/config.json` (override with `VISION_CONFIG`)
+  and loaded automatically by `vision.py` on every run — the user never has to
+  re-enter them. Provider aliases: `glm`→`ZHIPUAI_API_KEY`, `qwen`→`DASHSCOPE_API_KEY`,
+  `siliconflow`→`SILICONFLOW_API_KEY`, `gemini`→`GEMINI_API_KEY`, `mineru`→`MINERU_TOKEN`
+  (raw env-var names like `ZHIPUAI_API_KEY` also work).
+- Manage: `set_key.py --list` (masked), `set_key.py --delete glm`, `set_key.py --path`.
+- Precedence: **real environment variables > config file**. If an env var is already
+  set it wins; the config file only fills in what is missing.
+- Never echo the full key back to the user — confirm with a masked value
+  (e.g. `sk-12…34ab`) or the saved env-var name.
+- The config file is plain text; never commit it to git, and never paste it into
+  prompts, code, or chat messages.
+
 ## Environment variables
 
-Set once at the Windows user level (PowerShell):
+Set once at the Windows user level (PowerShell), or simply let the model save
+keys with `set_key.py` (see "API keys" above — env vars take precedence over the
+config file):
 
 ```powershell
 [Environment]::SetEnvironmentVariable('ZHIPUAI_API_KEY',    'your-key', 'User')

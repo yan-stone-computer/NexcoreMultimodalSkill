@@ -84,7 +84,22 @@ python scripts/install.py --dest <any-dir>     # custom location
 
 ### ③ Configure a free API key (optional but recommended)
 
-MinerU document parsing and local OCR work **with no key at all**; for stronger general understanding, add a free key (Zhipu GLM is recommended — free forever):
+MinerU document parsing and local OCR work **with no key at all**; for stronger general understanding, add a free key (Zhipu GLM is recommended — free forever).
+
+**Easiest way — just tell your model the key.** The model persists it for you with `set_key.py`; `vision.py` loads it automatically on every run, so you only enter it once:
+
+```bash
+python scripts/set_key.py glm sk-xxxx          # Zhipu GLM (free forever)
+python scripts/set_key.py gemini sk-xxxx       # Google Gemini (~1500 req/day)
+python scripts/set_key.py qwen sk-xxxx         # Alibaba Qwen-VL
+python scripts/set_key.py siliconflow sk-xxxx  # SiliconFlow open models
+python scripts/set_key.py mineru your-token    # optional, 1000 pages/day
+python scripts/set_key.py --list               # show stored keys (masked)
+```
+
+Keys are stored in `~/.vision-reader/config.json` (override with `VISION_CONFIG`) and are never echoed back in full. Real environment variables still take precedence over the config file.
+
+Traditional way — environment variables:
 
 ```bash
 export ZHIPUAI_API_KEY=your-key      # Zhipu GLM-4.6V-Flash (free forever)
@@ -146,6 +161,12 @@ python scripts/vision.py screenshot.png --prompt "Describe the UI state" --json
   "text": "## Abstract ..."
 }
 ```
+
+Real output examples:
+
+![Vision analysis demo 1](assets/demo-1.png)
+
+![Vision analysis demo 2](assets/demo-2.png)
 
 ---
 
@@ -213,14 +234,18 @@ usage: vision.py inputs [inputs ...] [--prompt PROMPT] [--engine ENGINE]
 ```
 ModelVisionSkill/
 ├── SKILL.md              # Agent Skill definition (auto-detected by platforms)
+├── assets/
+│   ├── demo-1.png        # Real output examples (shown in README)
+│   └── demo-2.png
 ├── agents/
 │   └── openai.yaml       # OpenAI Codex agent config
 ├── scripts/
 │   ├── vision.py         # 🚀 Unified CLI entry
+│   ├── set_key.py        # 🔑 Store / list / delete API keys (model-run friendly)
 │   ├── install.py        # One-line install for every agent platform
 │   ├── analyze_image.py  # Legacy single-engine script (kept for compatibility)
 │   └── engines/
-│       ├── common.py     # HTTP / image encoding / cache / resize
+│       ├── common.py     # HTTP / image encoding / cache / resize / key config
 │       ├── glm.py        # Zhipu GLM-4.6V-Flash
 │       ├── qwen.py       # Alibaba Qwen-VL
 │       ├── siliconflow.py# SiliconFlow open vision models
