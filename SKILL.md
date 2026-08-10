@@ -107,6 +107,33 @@ Overridable:
 - Google AI Studio (Gemini): https://aistudio.google.com/apikey — ~1500 free req/day
 - MinerU token (optional, 1000 pages/day): https://mineru.net/apiManage/token
 
+## Workarounds — when the client UI blocks image uploads
+
+Some clients (WorkBuddy, Codex, …) detect that the active model is text-only
+(DeepSeek, MiMo, GLM-4.5, …) and **disable image attachments at the UI layer** —
+the upload control simply rejects images. This skill still works; you just have
+to give the model the image as a text-addressable reference instead of an
+attachment:
+
+1. **Image URL (recommended).** Ask the user to upload the picture to any image
+   host (or reuse an existing link) and paste the URL into the chat. `vision.py`
+   auto-downloads HTTP(S) URLs:
+
+        python <skill-dir>/scripts/vision.py https://example.com/photo.png --prompt "<question>"
+
+2. **Local path.** If the image is already on the machine (saved screenshot,
+   exported file, …), ask for its absolute path — no upload step at all:
+
+        python <skill-dir>/scripts/vision.py "C:/Users/me/Pictures/shot.png" --prompt "<question>"
+
+3. **Clipboard image.** If the image only exists in the clipboard, ask the user to
+   save it to a file first (e.g. `Win+Shift+S` → paste into Paint → Save as PNG),
+   then use the local path from step 2.
+
+Never ask the user to paste the image as Base64 text — text-only models cannot
+handle it and it explodes the context window. Prefer URL, then local path, in
+that order.
+
 ## Prompting guidelines
 
 - Pass the user's actual question through in `--prompt`

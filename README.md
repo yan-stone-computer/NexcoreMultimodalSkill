@@ -257,6 +257,28 @@ ModelVisionSkill/
 
 ---
 
+## 🩹 Troubleshooting — client UI blocks image uploads?
+
+**Symptom**: you're in an agent client (WorkBuddy, Codex, …) whose active model is text-only
+(DeepSeek, MiMo, GLM-4.5, …). The UI detects this and **disables the image-attachment button** —
+you literally can't upload a screenshot, so your "blind" model stays blind.
+
+**Fix**: ModelVisionSkill only needs the image to be *addressable*, not attached. Hand it over in one of these forms (best first):
+
+1. **Paste an image URL (recommended).** Upload the picture to any image host (or reuse an existing link) and paste the URL into the chat — `vision.py` auto-downloads it:
+   ```bash
+   python <path-to-ModelVisionSkill>/scripts/vision.py https://example.com/photo.png --prompt "<your question>"
+   ```
+2. **Give a local path.** The image is already on your machine? Just tell the agent the absolute path — no upload step at all:
+   ```bash
+   python <path-to-ModelVisionSkill>/scripts/vision.py "C:/Users/me/Pictures/shot.png" --prompt "<your question>"
+   ```
+3. **Save clipboard images to a file.** If the screenshot only exists in the clipboard, save it first (`Win+Shift+S` → paste into Paint → Save as PNG), then use the local path from step 2.
+
+> ⚠️ Never paste the image as Base64 text — text-only models choke on it and it explodes the context window. URL first, local path second.
+
+---
+
 ## ❓ FAQ
 
 **Q: Can I use it with zero API keys?**
