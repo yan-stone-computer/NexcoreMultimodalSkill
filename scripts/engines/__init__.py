@@ -9,6 +9,8 @@ from . import gemini, glm, local, mineru, qwen, siliconflow
 
 # Default priority (first available engine wins). Override with
 # VISION_ENGINE_PRIORITY="gemini,glm,mineru,local" etc.
+# "web" (browser-driven, zero keys) is first by default; it is resolved by
+# vision.py as a browser-guidance mode, not by an API module.
 ENGINES = {
     "glm": glm,
     "qwen": qwen,
@@ -18,7 +20,7 @@ ENGINES = {
     "local": local,
 }
 
-DEFAULT_PRIORITY = ["glm", "qwen", "siliconflow", "gemini", "mineru", "local"]
+DEFAULT_PRIORITY = ["web", "glm", "qwen", "siliconflow", "gemini", "mineru", "local"]
 
 
 def priority_list() -> list[str]:

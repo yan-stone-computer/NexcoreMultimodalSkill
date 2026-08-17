@@ -126,15 +126,75 @@ def delete_stored_key(env_name: str) -> bool:
 def ensure_config_loaded() -> dict:
     """Inject persisted keys into os.environ (never overriding real env vars).
 
-    Call once at startup, before engine selection. Returns the injected
-    {env_var: key} map (empty when nothing was injected).
+    Loads `.env` first (skill dir, then cwd; override with `VISION_ENV_FILE`),
+    then the `set_key.py` config file. Precedence: real env vars > `.env` >
+    config.json. Call once at startup, before engine selection. Returns the
+    injected {env_var: key} map (empty when nothing was injected).
     """
     injected: dict = {}
+    for env_name, value in dotenv_values().items():
+        if value and not os.environ.get(env_name):
+            os.environ[env_name] = value
+            injected[env_name] = value
     for env_name, value in stored_keys().items():
         if value and not os.environ.get(env_name):
             os.environ[env_name] = value
             injected[env_name] = value
     return injected
+
+
+def dotenv_path() -> Path:
+    """Path of the `.env` file (override with VISION_ENV_FILE).
+
+    Lookup order: `VISION_ENV_FILE` env var → skill dir `.env` → cwd `.env`.
+    Returns None when none exists.
+    """
+    candidates: list[Path] = []
+    override = os.environ.get("VISION_ENV_FILE", "").strip()
+    if override:
+        candidates.append(Path(override).expanduser())
+    skill_root = Path(__file__).resolve().parent.parent.parent  # scripts/engines -> skill root
+    candidates.extend([skill_root / ".env", Path.cwd() / ".env"])
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def dotenv_values() -> dict:
+    """Parse a `.env` file into {ENV_VAR: value} (empty when none/missing).
+
+    Supports `KEY=VALUE` lines, optional `export ` prefix, inline `#` comments,
+    and double/single-quoted values. Values are NOT variable-expanded.
+    """
+    path = dotenv_path()
+    if path is None:
+        return {}
+    values: dict = {}
+    try:
+        lines = path.read_text("utf-8").splitlines()
+    except OSError:
+        return {}
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].lstrip()
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+            value = value[1:-1]
+        else:
+            value = value.split(" #", 1)[0].split("\t#", 1)[0].rstrip()
+        if value:
+            values[key] = value
+    return values
 
 
 def http_request(

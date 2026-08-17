@@ -1,6 +1,6 @@
 interface:
   display_name: "ModelVisionSkill"
-  short_description: "Give text-only models (DeepSeek/MiMo/GLM-4.5 etc.) eyes via free vision APIs (GLM/Qwen/SiliconFlow/Gemini/MinerU/local OCR) with auto fallback."
+  short_description: "Give text-only models (DeepSeek/MiMo/GLM-4.5 etc.) eyes via free vision APIs (GLM/Qwen/SiliconFlow/Gemini/MinerU/local OCR) with auto fallback, plus browser-driven web engines (Doubao/Kimi/Tongyi/ChatGLM/Yuanbao) that rotate when logged-out quotas run out and keep going while logged in."
   default_prompt: "Use the model-vision-skill skill to analyze the attached image with $vision.py."
   example_prompts:
     - "Read the text in this screenshot"

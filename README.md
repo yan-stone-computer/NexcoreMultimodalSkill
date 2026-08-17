@@ -2,7 +2,7 @@
 
 # 👁️ ModelVisionSkill
 
-### Give every non-multimodal model eyes — 6 free vision engines, one skill, ready on every agent platform
+### Give every non-multimodal model eyes — 7 free vision engines, one skill, ready on every agent platform
 
 **Text-only model × free vision API = full multimodal** · $0 cost · Auto-fallback · Cached · Cross-platform
 
@@ -86,7 +86,20 @@ python scripts/install.py --dest <any-dir>     # custom location
 
 MinerU document parsing and local OCR work **with no key at all**; for stronger general understanding, add a free key (Zhipu GLM is recommended — free forever).
 
-**Easiest way — just tell your model the key.** The model persists it for you with `set_key.py`; `vision.py` loads it automatically on every run, so you only enter it once:
+**Recommended — fill in the `.env` file** (the skill ships with one; copy from `.env.example`):
+
+```bash
+# <skill-dir>/.env
+ZHIPUAI_API_KEY=sk-xxxx          # Zhipu GLM (free forever)
+GEMINI_API_KEY=sk-xxxx           # Google Gemini (~1500 req/day)
+DASHSCOPE_API_KEY=sk-xxxx        # Alibaba Qwen-VL
+SILICONFLOW_API_KEY=sk-xxxx      # SiliconFlow open models
+MINERU_TOKEN=your-token          # optional, 1000 pages/day
+```
+
+`vision.py` loads `.env` automatically on every run (lookup: `VISION_ENV_FILE` → skill root → cwd). Precedence: **real environment variables > `.env` > `set_key.py` config**.
+
+**Alternative — tell your model the key.** The model persists it for you with `set_key.py`; `vision.py` loads it automatically on every run, so you only enter it once:
 
 ```bash
 python scripts/set_key.py glm sk-xxxx          # Zhipu GLM (free forever)
@@ -97,7 +110,7 @@ python scripts/set_key.py mineru your-token    # optional, 1000 pages/day
 python scripts/set_key.py --list               # show stored keys (masked)
 ```
 
-Keys are stored in `~/.vision-reader/config.json` (override with `VISION_CONFIG`) and are never echoed back in full. Real environment variables still take precedence over the config file.
+`set_key.py` keys are stored in `~/.vision-reader/config.json` (override with `VISION_CONFIG`) and are never echoed back in full.
 
 Traditional way — environment variables:
 
@@ -122,8 +135,8 @@ Most "give DeepSeek eyes" projects out there are **single-model MCP servers**: w
 
 ModelVisionSkill is different:
 
-- 🆓 **6 free vision engines in one kit**: GLM / Qwen / SiliconFlow / Gemini / MinerU / local OCR — all free tiers, runs even with zero API keys
-- 🔄 **Auto-fallback**: if the primary engine fails, the next one takes over automatically. Never blind again
+- 🆓 **7 free vision engines in one kit**: browser-driven web engines (preferred) + GLM / Qwen / SiliconFlow / Gemini / MinerU / local OCR — all free tiers, runs even with zero API keys
+- 🔄 **Web-first, auto-fallback**: images go to the free web models (Doubao, Kimi, Tongyi…) **by default** — logged-out quota exhausted, the agent rotates to the next site; logged in, it keeps going. Only when no browser is available or every web site is exhausted do the API engines take over, then local OCR. Never blind again
 - 🧠 **Document-grade parsing**: feed PDF / Word / PPT / Excel directly; MinerU returns structured Markdown (tables + LaTeX formulas intact)
 - ⚡ **SHA256 disk cache**: same image + same question = instant reply within 7 days (0.6s measured)
 - 📦 **Zero third-party dependencies**: pure Python stdlib, Windows / macOS / Linux
@@ -174,16 +187,19 @@ Real output examples:
 
 | Engine | Default model | Key | Free tier | Strength |
 |---|---|---|---|---|
-| `glm` | GLM-4.6V-Flash | `ZHIPUAI_API_KEY` | **Free forever** | General vision (default) |
+| `web` 🧭 | Doubao → Kimi → Tongyi → ChatGLM → Yuanbao → Xunfei → ERNIE | none | **Free, no key** | **Images by default** (browser-driven) |
+| `glm` | GLM-4.6V-Flash | `ZHIPUAI_API_KEY` | **Free forever** | General vision (API default) |
 | `qwen` | qwen-vl-plus | `DASHSCOPE_API_KEY` | New-user quota | Chinese / OCR |
 | `siliconflow` | Qwen2.5-VL-7B-Instruct | `SILICONFLOW_API_KEY` | Sign-up credits | Any open model |
 | `gemini` | gemini-2.5-flash | `GEMINI_API_KEY` | ~1500 req/day | Best free visual reasoning |
 | `mineru` | MinerU document parser | `MINERU_TOKEN` (optional) | Tokenless / 1000 pages/day | **PDF / tables / formulas** |
 | `local` | RapidOCR (offline) | none | **Fully free** | Works without internet |
 
-Auto-selection: **documents → MinerU; images → first configured VLM in priority order, falling back on failure, local OCR last.**
+Auto-selection: **documents → MinerU; images → `web` engines via browser FIRST, then the first configured VLM in priority order, falling back on failure, local OCR last** (full SOP: `references/web-engines.md`).
 
-Reorder engines via env var: `export VISION_ENGINE_PRIORITY="gemini,glm,mineru,local"`
+Reorder engines via env var: `export VISION_ENGINE_PRIORITY="gemini,glm,mineru,local"` (drop `web` to make API engines first) — web sites rotate via `VISION_WEB_ORDER` (e.g. `kimi,doubao,tongyi`).
+
+> ℹ️ **About the `web` engine**: it is the **preferred default for images** and is executed by the **agent through a browser** (open site → upload image → send prompt → read reply); `vision.py` emits the browser-guidance payload when it is selected. **Logged in → keep using the same site, no quota limit. Logged out → rotate** to the next site once the daily free quota is used up (Doubao ≈ 15–20 free turns/day, others vary — always trust the on-page quota notice). When every web site is exhausted or no browser is available, the API engines take over.
 
 ---
 
@@ -194,11 +210,15 @@ flowchart LR
     A[Agent receives image] --> B{ModelVisionSkill}
     B --> C[vision.py multi-engine router]
     C --> D{Input type}
-    D -->|image| E[VLM engine chain<br/>GLM→Qwen→SF→Gemini]
+    D -->|image| W[Web engines via browser<br/>Doubao→Kimi→…→ERNIE<br/>default, zero keys]
     D -->|PDF/DOCX document| F[MinerU parser]
+    W -->|no browser / all sites exhausted| E[VLM API chain<br/>GLM→Qwen→SF→Gemini]
     E --> G[failed? auto-fallback]
     F --> H[Structured Markdown]
     G --> H
+    G -->|all failed| L[local OCR]
+    L --> H
+    W --> H
     H --> I[SHA256 cache 7 days]
     I --> J[Text result back to the text-only model]
 ```
@@ -219,7 +239,7 @@ usage: vision.py inputs [inputs ...] [--prompt PROMPT] [--engine ENGINE]
 |---|---|
 | `inputs` | Local file paths or HTTP(S) image/document URLs; multiple allowed |
 | `--prompt` | The user's question, passed through to the vision model verbatim |
-| `--engine` | `auto` (default) \| `glm` \| `qwen` \| `siliconflow` \| `gemini` \| `mineru` \| `local` |
+| `--engine` | `auto` (default; images → web) \| `web` \| `glm` \| `qwen` \| `siliconflow` \| `gemini` \| `mineru` \| `local` |
 | `--fallback` | Continue falling back even when an explicit engine fails |
 | `--json` | Structured output (engine / model / cache_hit / elapsed / text) |
 | `--no-cache` | Bypass the disk cache |
@@ -234,18 +254,23 @@ usage: vision.py inputs [inputs ...] [--prompt PROMPT] [--engine ENGINE]
 ```
 ModelVisionSkill/
 ├── SKILL.md              # Agent Skill definition (auto-detected by platforms)
+├── .env                  # 🔑 Your API keys (copy from .env.example, never commit)
+├── .env.example          # Key template
+├── .gitignore            # Excludes .env / config secrets
 ├── assets/
 │   ├── demo-1.png        # Real output examples (shown in README)
 │   └── demo-2.png
 ├── agents/
 │   └── openai.yaml       # OpenAI Codex agent config
+├── references/
+│   └── web-engines.md    # 🧭 Web engine manual: sites, quota rules, browser SOP
 ├── scripts/
-│   ├── vision.py         # 🚀 Unified CLI entry
+│   ├── vision.py         # 🚀 Unified CLI entry (auto-loads .env)
 │   ├── set_key.py        # 🔑 Store / list / delete API keys (model-run friendly)
 │   ├── install.py        # One-line install for every agent platform
 │   ├── analyze_image.py  # Legacy single-engine script (kept for compatibility)
 │   └── engines/
-│       ├── common.py     # HTTP / image encoding / cache / resize / key config
+│       ├── common.py     # HTTP / image encoding / cache / resize / .env & key config
 │       ├── glm.py        # Zhipu GLM-4.6V-Flash
 │       ├── qwen.py       # Alibaba Qwen-VL
 │       ├── siliconflow.py# SiliconFlow open vision models
@@ -282,10 +307,13 @@ you literally can't upload a screenshot, so your "blind" model stays blind.
 ## ❓ FAQ
 
 **Q: Can I use it with zero API keys?**
-Yes. MinerU's tokenless tier (≤10MB / 20 pages) and local RapidOCR run fully free. Adding any one key improves general understanding.
+Yes — and it's the default behavior. Images go to the free **web engines** (Doubao/Kimi/Tongyi…) through the browser first: logged out, the agent rotates across sites when the daily quota runs out; logged in, it keeps using the same site. When no browser is available or every web site is exhausted, MinerU's tokenless tier (≤10MB / 20 pages) and local RapidOCR still work fully free.
+
+**Q: Where should I put my API keys?**
+Anywhere you like — the skill's `.env` file (recommended), `set_key.py` config, or real environment variables. Precedence: **real env vars > `.env` > `set_key.py` config**. Keys are never echoed in full and never committed to git.
 
 **Q: How is this different from existing projects like deepseek-eyes?**
-Most are "single-model MCP servers" that only serve DeepSeek. ModelVisionSkill is **6 engines + auto-fallback + cache + document parsing + every-platform Skill + model-agnostic** in one, with zero dependencies — copy and go.
+Most are "single-model MCP servers" that only serve DeepSeek. ModelVisionSkill is **7 engines + auto-fallback + cache + document parsing + every-platform Skill + model-agnostic** in one, with zero dependencies — copy and go.
 
 **Q: My model has a vision API — do I still need this?**
 No — if it can see, use it directly. ModelVisionSkill only fills the blind spot. The classic case is "same-family bootstrapping": GLM-4.5 seeing through GLM-4.6V.

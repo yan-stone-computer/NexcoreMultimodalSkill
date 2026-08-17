@@ -15,6 +15,7 @@ python vision.py photo.png --engine auto --fallback
 
 Engines (all free tiers)
 ------------------------
+web          browser-driven (Doubao/Kimi/Tongyi/...)   none (no key)  images by default
 glm          GLM-4.6V-Flash           ZHIPUAI_API_KEY        permanently free
 qwen         Qwen-VL (DashScope)      DASHSCOPE_API_KEY      new-user quota
 siliconflow  Qwen2.5-VL-7B etc.       SILICONFLOW_API_KEY    sign-up credits
@@ -22,6 +23,10 @@ gemini       Gemini 2.5 Flash         GEMINI_API_KEY         ~1500 req/day
 mineru       MinerU document parse    MINERU_TOKEN (optional)1000 pages/day, free
                                                              tier w/o token
 local        RapidOCR offline         (none)                 fully free
+
+Images default to `web`: vision.py emits browser-guidance (site list, image
+paths, prompt) for the agent to execute; API engines take over when no browser
+is available or all web sites are exhausted. Documents always use `mineru`.
 """
 
 from __future__ import annotations
@@ -34,7 +39,7 @@ import tempfile
 import time
 from pathlib import Path
 
-from engines import ENGINES, available, pick
+from engines import ENGINES, available, pick, priority_list
 from engines import common
 from engines.common import (
     VisionError,
@@ -128,6 +133,46 @@ def analyze_with_engine(engine, images: list[Path], prompt: str, timeout: int, t
     return text, False
 
 
+def web_guide(images: list[Path], prompt: str, request_json: bool) -> str:
+    """Emit guidance for the browser-driven web engine (agent executes it).
+
+    The web engine is preferred by default. It is NOT an API module: the agent
+    must open a free web model (Doubao/Kimi/Tongyi/...) in a browser, upload the
+    image(s), send the prompt and read back the reply. Returns the payload text.
+    """
+    guide = "\n".join(
+        [
+            "# Web Engine — browser operation required",
+            "",
+            "The web engine is preferred and there is no API module for it: the agent must",
+            "drive a free web-based multimodal model in a browser to complete the vision task.",
+            "",
+            "1. Open a site (rotate to the next one when the logged-out daily quota runs out):",
+            "   https://www.doubao.com  (Doubao -> Kimi -> Tongyi -> ChatGLM -> Yuanbao -> Xunfei -> ERNIE)",
+            f"2. Upload image(s): {', '.join(str(i) for i in images)}",
+            f"3. Send prompt verbatim: {prompt!r}",
+            "4. Wait for the reply to finish streaming, read the full text, and return it.",
+            "",
+            "Login rule: if the browser is logged in, keep using the same site (no quota limit).",
+            "If logged out, once the page reports quota exhaustion (今日次数已用完 / 已达上限),",
+            "close the site and move to the next one.",
+            "",
+            "Full SOP (login-state detection, quota wording, error handling):",
+            "see references/web-engines.md in the skill directory.",
+        ]
+    )
+    if request_json:
+        payload = {
+            "engine": "web",
+            "browser_required": True,
+            "images": [str(i) for i in images],
+            "prompt": prompt,
+            "text": guide,
+        }
+        return json.dumps(payload, ensure_ascii=False, indent=2)
+    return guide
+
+
 def main(argv: list[str] | None = None) -> int:
     ensure_utf8_stdout()
     # Load persisted API keys from ~/.vision-reader/config.json (if any).
@@ -156,6 +201,26 @@ def main(argv: list[str] | None = None) -> int:
 
     # ----- engine selection -------------------------------------------------
     requested = args.engine or "auto"
+    priority = priority_list()
+
+    # Web engine (browser-driven) is the default preferred path for images.
+    # It has no API module — emit browser guidance for the agent to execute.
+    web_preferred = (
+        requested == "web"
+        or (
+            requested == "auto"
+            and not document_input
+            and priority
+            and priority[0] == "web"
+        )
+    )
+    if web_preferred:
+        if args.debug:
+            print("[debug] engine=web (browser guidance, preferred)", file=sys.stderr)
+        print(web_guide(images, prompt, request_json=args.json))
+        cleanup_temp(temp_paths)
+        return 0
+
     try:
         candidates = pick(requested, document_input)
     except ValueError as exc:

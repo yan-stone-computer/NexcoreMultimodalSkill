@@ -1,6 +1,6 @@
 ---
 name: model-vision-skill
-description: Give text-only LLMs (DeepSeek, Xiaomi MiMo, GLM-4.5, MiniMax, Llama 3.x, etc.) eyes by analyzing images, screenshots, UI captures, diagrams, charts, and OCR documents through free multi-modal APIs with automatic engine fallback and caching. Use automatically when the user attaches or references an image and asks to read, describe, inspect, extract text, debug a screenshot, identify UI details, understand a chart/table/scanned document, or answer questions grounded in image content. Do not use for image generation or purely text-only tasks.
+description: Give text-only LLMs (DeepSeek, Xiaomi MiMo, GLM-4.5, MiniMax, Llama 3.x, etc.) eyes by analyzing images, screenshots, UI captures, diagrams, charts, and OCR documents through free multi-modal APIs with automatic engine fallback and caching. Images are handled by the browser-driven web engines FIRST (Doubao, Kimi, Tongyi, ChatGLM, Yuanbao, etc.): open the web page, upload the image, send the prompt, read back the reply; when logged out, rotate to the next site once the daily free quota is exhausted, and keep using the same site while logged in. Only when no browser is available or all web sites are exhausted do the API engines (GLM/Qwen/SiliconFlow/Gemini/MinerU/local) take over. Use automatically when the user attaches or references an image and asks to read, describe, inspect, extract text, debug a screenshot, identify UI details, understand a chart/table/scanned document, or answer questions grounded in image content. Do not use for image generation or purely text-only tasks.
 ---
 
 # ModelVisionSkill 👁️
@@ -11,7 +11,8 @@ Give every non-multimodal model (DeepSeek, Xiaomi MiMo, GLM-4.5, MiniMax, Llama 
 
 | Engine | Default model | Env var | Free tier | Best for |
 |---|---|---|---|---|
-| `glm` | GLM-4.6V-Flash | `ZHIPUAI_API_KEY` | Free forever | General vision (default) |
+| `web` 🧭 | Doubao → Kimi → Tongyi → ChatGLM → Yuanbao → Xunfei → ERNIE | none | Free, no key | **Images by default** (browser-driven) |
+| `glm` | GLM-4.6V-Flash | `ZHIPUAI_API_KEY` | Free forever | General vision (API default) |
 | `qwen` | qwen-vl-plus | `DASHSCOPE_API_KEY` | New-user quota | Chinese / OCR |
 | `siliconflow` | Qwen2.5-VL-7B-Instruct | `SILICONFLOW_API_KEY` | Sign-up credits | Any open model |
 | `gemini` | gemini-2.5-flash | `GEMINI_API_KEY` | ~1500 req/day | Best free visual reasoning |
@@ -27,13 +28,13 @@ python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
 - Multiple inputs supported (multi-image compare): `vision.py a.png b.png --prompt "Compare them"`
 - Local paths and HTTP(S) URLs; URLs are auto-downloaded
 - Document inputs (PDF/DOCX/PPTX/XLSX/HTML) automatically route to `mineru` and return full Markdown (tables/formulas/layout preserved)
-- Image inputs pick the first available engine by `glm → qwen → siliconflow → gemini → mineru → local` priority; failures auto-fall back to the next engine
+- Image inputs default to the `web` engine (browser guidance, zero keys); the API chain `glm → qwen → siliconflow → gemini → mineru → local` takes over when no browser is available or all web sites are exhausted; failures auto-fall back to the next engine
 
 ### Key flags
 
 | Flag | Description |
 |---|---|
-| `--engine auto\|glm\|qwen\|siliconflow\|gemini\|mineru\|local` | Force an engine (default `auto`) |
+| `--engine auto\|web\|glm\|qwen\|siliconflow\|gemini\|mineru\|local` | Force an engine (default `auto`; images → `web` browser guidance first) |
 | `--prompt "..."` | The user's question, passed through verbatim |
 | `--json` | Structured output (engine/model/cache_hit/elapsed/text) |
 | `--no-cache` | Skip the SHA256 disk cache (default TTL 7 days) |
@@ -43,14 +44,40 @@ python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
 
 ## Engine selection & fallback
 
-- `auto`: documents → `mineru`; images → first configured VLM key, auto-fallback on failure, `local` as offline last resort
-- Explicit engine (e.g. `--engine gemini`): only that engine, unless `--fallback`
+- **Images default to `web` first** (browser-driven, zero keys): the agent opens
+  a free web model, uploads the image, reads back the reply — no API key needed.
+  Logged out → rotate to the next site when the daily quota is used up; logged in
+  → keep using the same site. Only when no browser is available or **all** web
+  sites are exhausted does the API chain take over.
+- `auto`: documents → `mineru`; images → `web` (browser) first, then the first
+  configured VLM key with auto-fallback on failure, `local` OCR as offline last
+  resort. `--engine web` forces the browser path explicitly.
+- Explicit engine (e.g. `--engine gemini`): only that engine, unless `--fallback`.
+  `--engine web` emits browser guidance instead of calling an API.
 - Reorder priority via env var: `VISION_ENGINE_PRIORITY="gemini,glm,mineru,local"`
+  (drop `web` to make API engines first); web sites rotate via
+  `VISION_WEB_ORDER` (e.g. `kimi,doubao,tongyi`).
 
-## API keys — stored in the skill config (recommended)
+## API keys — `.env` file or skill config
 
-When the user tells you an API key (or asks you to save one), **persist it with
-`set_key.py`** instead of printing it back:
+The skill ships with a `.env` file at the skill root (copy from `.env.example`).
+Fill it in with your keys — `vision.py` loads it automatically on every run:
+
+```
+# <skill-dir>/.env
+ZHIPUAI_API_KEY=sk-xxxx
+DASHSCOPE_API_KEY=sk-xxxx
+SILICONFLOW_API_KEY=sk-xxxx
+GEMINI_API_KEY=sk-xxxx
+MINERU_TOKEN=your-token          # optional
+```
+
+- Lookup order for the `.env` file: `VISION_ENV_FILE` env var → skill root
+  `.env` → current working directory `.env`.
+- Supports `KEY=VALUE` lines, optional `export ` prefix, inline `#` comments,
+  and quoted values. Empty values are ignored.
+- Alternative: persist keys with `set_key.py` (they go to
+  `~/.vision-reader/config.json`):
 
 ```bash
 python <skill-dir>/scripts/set_key.py glm sk-xxxx          # GLM / Zhipu (free forever)
@@ -60,23 +87,25 @@ python <skill-dir>/scripts/set_key.py gemini sk-xxxx       # Gemini
 python <skill-dir>/scripts/set_key.py mineru your-token    # MinerU (optional)
 ```
 
-- Keys are saved to `~/.vision-reader/config.json` (override with `VISION_CONFIG`)
-  and loaded automatically by `vision.py` on every run — the user never has to
-  re-enter them. Provider aliases: `glm`→`ZHIPUAI_API_KEY`, `qwen`→`DASHSCOPE_API_KEY`,
-  `siliconflow`→`SILICONFLOW_API_KEY`, `gemini`→`GEMINI_API_KEY`, `mineru`→`MINERU_TOKEN`
+- `set_key.py` keys are saved to `~/.vision-reader/config.json` (override with
+  `VISION_CONFIG`). Provider aliases: `glm`→`ZHIPUAI_API_KEY`,
+  `qwen`→`DASHSCOPE_API_KEY`, `siliconflow`→`SILICONFLOW_API_KEY`,
+  `gemini`→`GEMINI_API_KEY`, `mineru`→`MINERU_TOKEN`
   (raw env-var names like `ZHIPUAI_API_KEY` also work).
 - Manage: `set_key.py --list` (masked), `set_key.py --delete glm`, `set_key.py --path`.
-- Precedence: **real environment variables > config file**. If an env var is already
-  set it wins; the config file only fills in what is missing.
+- Precedence: **real environment variables > `.env` file > config file**. If an
+  env var is already set it wins; the `.env` only fills in what is missing, and
+  the config file only fills in what is still missing.
 - Never echo the full key back to the user — confirm with a masked value
   (e.g. `sk-12…34ab`) or the saved env-var name.
-- The config file is plain text; never commit it to git, and never paste it into
+- Key files are plain text; never commit them to git, and never paste them into
   prompts, code, or chat messages.
 
 ## Environment variables
 
-Set once at the Windows user level (PowerShell), or simply let the model save
-keys with `set_key.py` (see "API keys" above — env vars take precedence over the
+Set once at the Windows user level (PowerShell), or simply fill in the skill's
+`.env` file / let the model save keys with `set_key.py` (see "API keys" above —
+real env vars take precedence over `.env`, which takes precedence over the
 config file):
 
 ```powershell
@@ -106,6 +135,29 @@ Overridable:
 - SiliconFlow: https://siliconflow.cn — sign-up credits; pick a free VLM in the model plaza
 - Google AI Studio (Gemini): https://aistudio.google.com/apikey — ~1500 free req/day
 - MinerU token (optional, 1000 pages/day): https://mineru.net/apiManage/token
+
+## Web engines — browser-driven, preferred for images
+
+**Images default to the web engines first** — no API key, no registration
+needed. The agent drives a free web-based multimodal model in a browser: open
+the site, upload the image, send the prompt, read the reply. API engines are
+the fallback when no browser is available or every web site is exhausted.
+
+- Supported sites (rotation order): Doubao `doubao.com` → Kimi `kimi.com` →
+  Tongyi `tongyi.com` → ChatGLM `chatglm.cn` → Yuanbao `yuanbao.tencent.com` →
+  Xunfei Xinghuo `xinghuo.xfyun.cn` → ERNIE `yiyan.baidu.com`.
+- **Logged in → keep using**: if the browser session is logged in to a site, use it
+  for every request, no quota limit.
+- **Logged out → rotate**: each site has a small daily free quota (Doubao ≈ 15–20
+  free turns/day, others vary — always trust the on-page quota notice). When the
+  page reports "今日次数已用完 / 已达上限 / 请登录后继续", close that site and move
+  to the next one in the list. Once all sites are exhausted, fall back to the API
+  engines, or report that the daily web quota is used up and suggest logging in
+  or providing an API key.
+- `vision.py` returns the browser guidance payload when the web engine is
+  selected (default for images, or `--engine web`); the agent executes it.
+- Full SOP (login-state detection, upload steps, quota-detection wording, error
+  handling): see `references/web-engines.md`.
 
 ## Workarounds — when the client UI blocks image uploads
 
