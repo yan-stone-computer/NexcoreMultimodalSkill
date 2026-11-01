@@ -68,6 +68,16 @@ Use local ComfyUI when the user asks for local/private generation, Qwen-Image-2.
 
 Full local routing, edit constraints, memory fallback, and output rules: `references/comfyui-local.md`.
 
+### When ComfyUI is missing
+
+1. Run `python <skill-dir>/scripts/comfyui_setup.py check`.
+2. If not ready for a generic image request, ask whether the user wants to install the local runtime or use the Agnes route. If they are considering local, run `python <skill-dir>/scripts/comfyui_setup.py plan` and summarize the target directory, hardware requirement, downloads, license, and disk use.
+3. Ask the user explicitly whether to install and wait for a clear yes. Do not treat a general request to generate an image as consent to install software or download models.
+4. Only after approval run `python <skill-dir>/scripts/comfyui_setup.py install --yes`.
+5. Run `comfyui_setup.py verify`, then `comfyui_local.py start` and `health`.
+
+The installer never overwrites a non-ComfyUI directory, reuses valid files, verifies SHA-256, and refuses to replace a bad model without `--replace-bad-models`. Full process: `references/comfyui-install.md`.
+
 Agnes media generation requires `AGNES_API_KEY`. Image-to-video and keyframe inputs that are sent to the remote service must be public URLs. Local files are accepted by image analysis and both image-editing routes; check the CLI output for the exact accepted form.
 
 ### Key flags
@@ -114,6 +124,8 @@ AGNES_API_KEY=sk-xxxx            # image / image-edit / video
 COMFYUI_QWEN_CLI=                # optional path to installed comfyui_qwen.py
 COMFYUI_ROOT=D:\ComfyUI
 COMFYUI_URL=http://127.0.0.1:8188
+COMFYUI_REF=v0.42.0
+COMFYUI_TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 ```
 
 - Lookup order for the `.env` file: `VISION_ENV_FILE` env var → skill root

@@ -10,6 +10,9 @@ of bundling ComfyUI, model weights, or workflow graphs in this repository.
 - The `comfyui-qwen-image` Agent Skill is installed and enabled.
 - The local service normally listens on `http://127.0.0.1:8188`.
 
+If the runtime is missing, use the consent-gated process in
+`references/comfyui-install.md`.
+
 The bridge auto-discovers the current Codex plugin cache. If discovery fails,
 set `COMFYUI_QWEN_CLI` to the absolute path of `scripts/comfyui_qwen.py`.
 

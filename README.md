@@ -69,9 +69,46 @@ order.
 
 ## Generate images locally with ComfyUI Qwen
 
-Install and enable the `comfyui-qwen-image` Agent Skill first. This repository
-does not download ComfyUI or model weights. The bridge auto-discovers the
-installed plugin; set `COMFYUI_QWEN_CLI` if it lives elsewhere.
+Install and enable the `comfyui-qwen-image` Agent Skill first. The bridge
+auto-discovers that plugin; set `COMFYUI_QWEN_CLI` if it lives elsewhere. This
+repository does not bundle model weights; the setup script can download them
+only after the user explicitly approves installation.
+
+### If ComfyUI is not installed
+
+Check the machine before asking the user to download anything:
+
+```bash
+python scripts/comfyui_setup.py check
+python scripts/comfyui_setup.py plan
+```
+
+If the runtime is incomplete, offer the choice between installing the local
+runtime and using Agnes, then show the install plan when relevant. Only after an
+explicit **yes** to local installation run:
+
+```bash
+python scripts/comfyui_setup.py install --yes
+```
+
+The installer uses `D:\ComfyUI` by default when the `D:` drive exists, otherwise
+`~/ComfyUI`. Override it with `COMFYUI_ROOT` or `--root`. It:
+
+- clones Comfy-Org/ComfyUI at the tested `v0.42.0` tag into an empty target;
+- creates an isolated `.venv`, installs PyTorch and ComfyUI requirements;
+- installs the `ComfyUI-GGUF` custom node;
+- downloads three verified Qwen-Image-2.1 files, totaling about `10.4 GiB`;
+- verifies size and SHA-256 before atomically moving each file into place.
+
+Recommended hardware is an NVIDIA GPU with at least 8 GiB VRAM, 16 GiB system
+RAM, and 25 GiB free disk space. Existing valid files are reused. A checksum
+mismatch aborts instead of overwriting; `--replace-bad-models` is required to
+replace one intentionally. Use `--skip-deps` or `--skip-models` for a staged
+install. Use `--comfyui-ref` when another ComfyUI tag is required.
+
+Qwen-Image-2.1 weights use the Qwen Research License. The downloader does not
+grant commercial rights. Full sources, safety rules, and troubleshooting are in
+[references/comfyui-install.md](references/comfyui-install.md).
 
 ```bash
 # Check the local service in low-VRAM mode
@@ -165,6 +202,8 @@ AGNES_BASE_URL=https://apihub.agnes-ai.com/v1
 COMFYUI_QWEN_CLI=
 COMFYUI_ROOT=D:\ComfyUI
 COMFYUI_URL=http://127.0.0.1:8188
+COMFYUI_REF=v0.42.0
+COMFYUI_TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
 ```
 
 At least one relevant provider key is enough for its route. Local OCR and the
@@ -206,6 +245,7 @@ NexcoreMultimodalSkill/
 ├── scripts/
 │   ├── vision.py                # Image/document understanding
 │   ├── comfyui_local.py         # Local Qwen-Image-2.1 bridge
+│   ├── comfyui_setup.py         # Consent-gated runtime installer
 │   ├── agnes_api.py             # Image/video generation and analysis
 │   ├── set_key.py               # Persist provider keys
 │   ├── install.py               # Cross-platform installer
@@ -213,6 +253,7 @@ NexcoreMultimodalSkill/
 ├── references/
 │   ├── web-engines.md           # Browser-driven vision SOP
 │   ├── comfyui-local.md         # Local ComfyUI routing and constraints
+│   ├── comfyui-install.md       # Hardware, sources, install and verification
 │   └── agnes-api.md             # Agnes API reference
 ├── docs/media/                  # Image/video demo assets
 └── tests/                       # Offline contract and payload tests

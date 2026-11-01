@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nexcore-multimodal-skill"
-version = "0.3.0"
-description = "Give text-only LLMs vision input plus local ComfyUI/Qwen and Agnes image generation, image editing and video generation"
+version = "0.4.0"
+description = "Give text-only LLMs vision input plus consent-gated local ComfyUI/Qwen deployment and Agnes media generation"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
@@ -23,10 +23,11 @@ Homepage = "https://github.com/yan-stone-computer/NexcoreMultimodalSkill"
 [project.scripts]
 nexcore-multimodal = "vision:entry"
 nexcore-comfyui = "comfyui_local:main"
+nexcore-comfyui-setup = "comfyui_setup:main"
 nexcore-media = "agnes_api:main"
 
 [tool.setuptools]
-py-modules = ["vision", "analyze_image", "comfyui_local", "agnes_api"]
+py-modules = ["vision", "analyze_image", "comfyui_local", "comfyui_setup", "agnes_api"]
 packages = ["engines"]
 
 [tool.setuptools.package-dir]

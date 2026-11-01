@@ -9,6 +9,7 @@ interface:
     - "Extract this PDF as Markdown"
     - "Generate an image of a quiet tea house in the rain"
     - "Generate this image locally with Qwen-Image-2.1"
+    - "Check whether local ComfyUI is installed and show me the install plan"
     - "Turn this photo into a watercolor painting"
     - "Animate this photo with gentle camera movement"
 
