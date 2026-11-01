@@ -1,6 +1,6 @@
 ---
 name: nexcore-multimodal-skill
-description: Give text-only LLMs multimodal input and output. Analyze images, screenshots, UI captures, diagrams, charts, and documents through browser or API vision engines with fallback and caching; generate images, edit images, generate videos, query video tasks, and perform optional Agnes vision analysis. Use local ComfyUI with Qwen-Image-2.1 for private/local image generation and editing when available, and agnes_api.py for Agnes media or video generation. Use vision.py for inspection. Do not invoke media generation for a purely text-only task.
+description: Give text-only LLMs multimodal input and output. Use the bundled NexcoreVision evidence architecture as the primary visual path: separate OCR text, optional local CNN evidence, and independent vision-model semantics into a bounded report. Use vision.py for PDF/Office parsing and multi-engine fallback. Generate images with local ComfyUI/Qwen-Image-2.1 or Agnes, generate videos with Agnes, and keep images local when possible. Do not invoke media generation for a purely text-only task.
 ---
 
 # NexcoreMultimodalSkill 👁️ + 🎨
@@ -9,7 +9,8 @@ Give text-only models two missing senses: **see existing material** and **create
 
 | Direction | Tool | Use when |
 |---|---|---|
-| Image/document → text | `scripts/vision.py` | Read screenshots, charts, photos, PDFs, Office files; extract text, diagnose UI, compare images |
+| Image → bounded evidence | `scripts/nexcore_vision.py` | Primary screenshot/photo/diagram path; OCR, CNN, and VLM evidence stay separate |
+| Document / fallback → text | `scripts/vision.py` | PDF/Office parsing, browser/API engines, or fallback when Node.js is unavailable |
 | Local text/image → image | `scripts/comfyui_local.py` | Generate or edit images with local Qwen-Image-2.1; preferred for private/local image work |
 | Image generation and editing | `scripts/agnes_api.py image` or `image-edit` | Text-to-image, image-to-image, or multi-image composition |
 | Text/image → video | `scripts/agnes_api.py video` | Text-to-video, image-to-video, or keyframe animation |
@@ -30,7 +31,21 @@ Provider availability, free quotas, and model names can change upstream. Check t
 
 ## Usage
 
-### Inspect an image or document
+### Inspect an image (primary evidence architecture)
+
+```bash
+python <skill-dir>/scripts/nexcore_vision.py health
+python <skill-dir>/scripts/nexcore_vision.py analyze <image-path> --deep
+python <skill-dir>/scripts/nexcore_vision.py analyze <image-path> --json
+```
+
+NexcoreVision requires Node.js 22.13+. Prefer its separated evidence report over
+passing raw images to the downstream text model. Use `--question` for focus,
+`--max-chars` for context budget, and `--vision-base-url` / `--vision-model` for
+an independent OpenAI-compatible vision adapter. Full architecture:
+`references/nexcore-vision-architecture.md`.
+
+### Multi-engine fallback and document parsing
 
 ```bash
 python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
@@ -126,6 +141,11 @@ COMFYUI_ROOT=D:\ComfyUI
 COMFYUI_URL=http://127.0.0.1:8188
 COMFYUI_REF=v0.42.0
 COMFYUI_TORCH_INDEX_URL=https://download.pytorch.org/whl/cu128
+NEXCORE_VISION_ROOT=              # optional external NexcoreVision checkout
+NEXCORE_VISION_API_KEY=
+NEXCORE_VISION_PYTHON=
+NEXCORE_VISION_DEVICE=cpu
+TESSERACT_LANGS=chi_sim+eng
 ```
 
 - Lookup order for the `.env` file: `VISION_ENV_FILE` env var → skill root
