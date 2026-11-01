@@ -77,15 +77,16 @@ def render_opencode_agent() -> str:
     return (
         "---\n"
         "description: NexcoreMultimodalSkill — analyze images/documents and generate or "
-        "edit images and videos. Use when the user references visual input or asks for "
-        "media generation.\n"
+        "edit images locally with ComfyUI/Qwen or through Agnes. Use when the user "
+        "references visual input or asks for media generation.\n"
         "---\n\n"
         "## NexcoreMultimodalSkill\n\n"
         "When you need to understand an image or document, run:\n\n"
         "```bash\n"
         f"python {SKILL_DIR}/scripts/vision.py <image-or-url> --prompt \"<user question>\"\n"
         "```\n\n"
-        f"For media generation, run `python {SKILL_DIR}/scripts/agnes_api.py image|image-edit|video ...`.\n\n"
+        f"For local image generation/editing, run `python {SKILL_DIR}/scripts/comfyui_local.py generate|edit ...`.\n\n"
+        f"For Agnes media, run `python {SKILL_DIR}/scripts/agnes_api.py image|image-edit|video ...`.\n\n"
         "- Support multiple inputs: `vision.py a.png b.png --prompt \"compare\"`\n"
         "- PDF/DOCX/PPTX inputs are parsed via MinerU into Markdown automatically\n"
         "- Use `--json` for structured output, `--engine <name>` to force an engine\n"
@@ -95,14 +96,14 @@ def render_opencode_agent() -> str:
 def render_cursor_rule() -> str:
     return (
         "---\n"
-        "description: NexcoreMultimodalSkill — analyze images/documents or generate media.\n"
+        "description: NexcoreMultimodalSkill — analyze images/documents or generate local/remote media.\n"
         "globs: []\n"
         "---\n\n"
         "当需要理解图片 / 截图 / 文档（OCR、看图、调试截图、提取图表信息）时：\n\n"
         "```bash\n"
         f"python {SKILL_DIR}/scripts/vision.py <image-or-url> --prompt \"<问题>\"\n"
         "```\n\n"
-        "生成或编辑图片、生成视频时使用 `scripts/agnes_api.py`。\n\n"
+        "本地生成或编辑图片优先使用 `scripts/comfyui_local.py`；生成视频或使用 Agnes 时使用 `scripts/agnes_api.py`。\n\n"
         "多图对比、PDF 解析、--json 结构化输出见仓库 README。\n"
     )
 
@@ -169,7 +170,7 @@ def main(argv: list[str] | None = None) -> int:
             f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} mineru your-token # optional\n"
             f"  python {SKILL_DIR / 'scripts' / 'set_key.py'} agnes sk-xxxx   # image/video\n"
             "Keys are stored in ~/.vision-reader/config.json and loaded automatically.\n"
-            "MinerU free tier and local RapidOCR need no key at all."
+            "Local Qwen/ComfyUI and RapidOCR need no API key; install the comfyui-qwen-image skill first."
         )
     return 0 if ok else 1
 

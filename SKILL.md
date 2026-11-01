@@ -1,6 +1,6 @@
 ---
 name: nexcore-multimodal-skill
-description: Give text-only LLMs multimodal input and output. Analyze images, screenshots, UI captures, diagrams, charts, and documents through browser or API vision engines with fallback and caching; generate images, edit images, generate videos, query video tasks, and perform optional Agnes vision analysis. Use when the user references visual content, asks what an image/document says, requests image or video generation, asks to edit a picture, or wants a text-only model to gain multimodal capabilities. Use vision.py for inspection and agnes_api.py for media generation. Do not invoke media generation for a purely text-only task.
+description: Give text-only LLMs multimodal input and output. Analyze images, screenshots, UI captures, diagrams, charts, and documents through browser or API vision engines with fallback and caching; generate images, edit images, generate videos, query video tasks, and perform optional Agnes vision analysis. Use local ComfyUI with Qwen-Image-2.1 for private/local image generation and editing when available, and agnes_api.py for Agnes media or video generation. Use vision.py for inspection. Do not invoke media generation for a purely text-only task.
 ---
 
 # NexcoreMultimodalSkill 👁️ + 🎨
@@ -10,6 +10,7 @@ Give text-only models two missing senses: **see existing material** and **create
 | Direction | Tool | Use when |
 |---|---|---|
 | Image/document → text | `scripts/vision.py` | Read screenshots, charts, photos, PDFs, Office files; extract text, diagnose UI, compare images |
+| Local text/image → image | `scripts/comfyui_local.py` | Generate or edit images with local Qwen-Image-2.1; preferred for private/local image work |
 | Image generation and editing | `scripts/agnes_api.py image` or `image-edit` | Text-to-image, image-to-image, or multi-image composition |
 | Text/image → video | `scripts/agnes_api.py video` | Text-to-video, image-to-video, or keyframe animation |
 
@@ -43,7 +44,13 @@ python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
 ### Generate, edit, or animate media
 
 ```bash
-# Text → image
+# Local ComfyUI + Qwen-Image-2.1: health, generation, editing, and shutdown
+python <skill-dir>/scripts/comfyui_local.py health
+python <skill-dir>/scripts/comfyui_local.py generate "<description>" --preset standard
+python <skill-dir>/scripts/comfyui_local.py edit "<edit instruction>" --image <path> --preset standard
+python <skill-dir>/scripts/comfyui_local.py stop
+
+# Agnes image APIs
 python <skill-dir>/scripts/agnes_api.py image --prompt "<description>" --download
 
 # Image → image
@@ -57,7 +64,11 @@ python <skill-dir>/scripts/agnes_api.py video --prompt "<motion>" --mode text --
 python <skill-dir>/scripts/agnes_api.py video --prompt "<transition>" --mode keyframe --first-frame <url> --last-frame <url> --wait --download
 ```
 
-Agnes media generation requires `AGNES_API_KEY`. Image-to-video and keyframe inputs that are sent to the remote service must be public URLs. Local files are accepted by image analysis and image editing; check the CLI output for the exact accepted form.
+Use local ComfyUI when the user asks for local/private generation, Qwen-Image-2.1, or the installed plugin is already available. Use Agnes when the user requests its models, video generation, or explicitly chooses the API route. Do not silently upload a private image when a local edit is possible.
+
+Full local routing, edit constraints, memory fallback, and output rules: `references/comfyui-local.md`.
+
+Agnes media generation requires `AGNES_API_KEY`. Image-to-video and keyframe inputs that are sent to the remote service must be public URLs. Local files are accepted by image analysis and both image-editing routes; check the CLI output for the exact accepted form.
 
 ### Key flags
 
@@ -100,6 +111,9 @@ SILICONFLOW_API_KEY=sk-xxxx
 GEMINI_API_KEY=sk-xxxx
 MINERU_TOKEN=your-token          # optional
 AGNES_API_KEY=sk-xxxx            # image / image-edit / video
+COMFYUI_QWEN_CLI=                # optional path to installed comfyui_qwen.py
+COMFYUI_ROOT=D:\ComfyUI
+COMFYUI_URL=http://127.0.0.1:8188
 ```
 
 - Lookup order for the `.env` file: `VISION_ENV_FILE` env var → skill root
