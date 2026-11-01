@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ModelVisionSkill — give text-only LLMs (DeepSeek, Xiaomi MiMo, GLM-4.5, etc.) eyes.
+"""NexcoreMultimodalSkill vision CLI — give text-only LLMs eyes.
 
 Multi-engine CLI that analyzes images / screenshots / documents through free
 vision APIs, with automatic fallback and caching. Model-agnostic: works with

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Store / list / delete vision API keys in the skill's persisted config.
+"""Store / list / delete multimodal API keys in the skill's persisted config.
 
 Keys are saved to ~/.vision-reader/config.json (override with VISION_CONFIG)
 and automatically loaded by vision.py on every run. Real environment
@@ -18,6 +18,7 @@ Providers (alias -> env var):
   siliconflow / silicon            -> SILICONFLOW_API_KEY
   gemini / google                  -> GEMINI_API_KEY
   mineru                           -> MINERU_TOKEN
+  agnes                            -> AGNES_API_KEY
 """
 
 from __future__ import annotations
@@ -51,6 +52,7 @@ PROVIDERS = {
     "gemini": "GEMINI_API_KEY",
     "google": "GEMINI_API_KEY",
     "mineru": "MINERU_TOKEN",
+    "agnes": "AGNES_API_KEY",
 }
 
 
@@ -104,7 +106,7 @@ def cmd_delete(name: str) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="set_key.py",
-        description="Persist vision API keys for ModelVisionSkill.",
+        description="Persist API keys for Nexcore Multimodal Skill.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Providers: " + ", ".join(sorted(set(PROVIDERS.values()))),
     )
