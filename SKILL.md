@@ -1,11 +1,19 @@
 ---
-name: model-vision-skill
-description: Give text-only LLMs (DeepSeek, Xiaomi MiMo, GLM-4.5, MiniMax, Llama 3.x, etc.) eyes by analyzing images, screenshots, UI captures, diagrams, charts, and OCR documents through free multi-modal APIs with automatic engine fallback and caching. Images are handled by the browser-driven web engines FIRST (Doubao, Kimi, Tongyi, ChatGLM, Yuanbao, etc.): open the web page, upload the image, send the prompt, read back the reply; when logged out, rotate to the next site once the daily free quota is exhausted, and keep using the same site while logged in. Only when no browser is available or all web sites are exhausted do the API engines (GLM/Qwen/SiliconFlow/Gemini/MinerU/local) take over. Use automatically when the user attaches or references an image and asks to read, describe, inspect, extract text, debug a screenshot, identify UI details, understand a chart/table/scanned document, or answer questions grounded in image content. Do not use for image generation or purely text-only tasks.
+name: nexcore-multimodal-skill
+description: Give text-only LLMs multimodal input and output. Analyze images, screenshots, UI captures, diagrams, charts, and documents through browser or API vision engines with fallback and caching; generate images, edit images, generate videos, query video tasks, and perform optional Agnes vision analysis. Use when the user references visual content, asks what an image/document says, requests image or video generation, asks to edit a picture, or wants a text-only model to gain multimodal capabilities. Use vision.py for inspection and agnes_api.py for media generation. Do not invoke media generation for a purely text-only task.
 ---
 
-# ModelVisionSkill 👁️
+# NexcoreMultimodalSkill 👁️ + 🎨
 
-Give every non-multimodal model (DeepSeek, Xiaomi MiMo, GLM-4.5, MiniMax, Llama 3.x…) eyes: bridge free vision APIs with automatic engine fallback, disk caching, and document-grade parsing. All free tiers.
+Give text-only models two missing senses: **see existing material** and **create visual media**.
+
+| Direction | Tool | Use when |
+|---|---|---|
+| Image/document → text | `scripts/vision.py` | Read screenshots, charts, photos, PDFs, Office files; extract text, diagnose UI, compare images |
+| Image generation and editing | `scripts/agnes_api.py image` or `image-edit` | Text-to-image, image-to-image, or multi-image composition |
+| Text/image → video | `scripts/agnes_api.py video` | Text-to-video, image-to-video, or keyframe animation |
+
+Provider availability, free quotas, and model names can change upstream. Check the provider response instead of promising a fixed quota.
 
 ## Engines (all free tiers)
 
@@ -21,6 +29,8 @@ Give every non-multimodal model (DeepSeek, Xiaomi MiMo, GLM-4.5, MiniMax, Llama 
 
 ## Usage
 
+### Inspect an image or document
+
 ```bash
 python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
 ```
@@ -29,6 +39,25 @@ python <skill-dir>/scripts/vision.py <image-or-url> [--prompt "<question>"]
 - Local paths and HTTP(S) URLs; URLs are auto-downloaded
 - Document inputs (PDF/DOCX/PPTX/XLSX/HTML) automatically route to `mineru` and return full Markdown (tables/formulas/layout preserved)
 - Image inputs default to the `web` engine (browser guidance, zero keys); the API chain `glm → qwen → siliconflow → gemini → mineru → local` takes over when no browser is available or all web sites are exhausted; failures auto-fall back to the next engine
+
+### Generate, edit, or animate media
+
+```bash
+# Text → image
+python <skill-dir>/scripts/agnes_api.py image --prompt "<description>" --download
+
+# Image → image
+python <skill-dir>/scripts/agnes_api.py image-edit --prompt "<edit>" --image <path-or-url> --download
+
+# Text/image → video
+python <skill-dir>/scripts/agnes_api.py video --prompt "<motion>" --mode text --seconds 5 --wait --download
+python <skill-dir>/scripts/agnes_api.py video --prompt "<motion>" --mode text --images <public-url> --wait --download
+
+# Two-frame animation
+python <skill-dir>/scripts/agnes_api.py video --prompt "<transition>" --mode keyframe --first-frame <url> --last-frame <url> --wait --download
+```
+
+Agnes media generation requires `AGNES_API_KEY`. Image-to-video and keyframe inputs that are sent to the remote service must be public URLs. Local files are accepted by image analysis and image editing; check the CLI output for the exact accepted form.
 
 ### Key flags
 
@@ -70,6 +99,7 @@ DASHSCOPE_API_KEY=sk-xxxx
 SILICONFLOW_API_KEY=sk-xxxx
 GEMINI_API_KEY=sk-xxxx
 MINERU_TOKEN=your-token          # optional
+AGNES_API_KEY=sk-xxxx            # image / image-edit / video
 ```
 
 - Lookup order for the `.env` file: `VISION_ENV_FILE` env var → skill root
@@ -85,12 +115,14 @@ python <skill-dir>/scripts/set_key.py qwen sk-xxxx         # Qwen / DashScope
 python <skill-dir>/scripts/set_key.py siliconflow sk-xxxx  # SiliconFlow
 python <skill-dir>/scripts/set_key.py gemini sk-xxxx       # Gemini
 python <skill-dir>/scripts/set_key.py mineru your-token    # MinerU (optional)
+python <skill-dir>/scripts/set_key.py agnes sk-xxxx        # Agnes media
 ```
 
 - `set_key.py` keys are saved to `~/.vision-reader/config.json` (override with
   `VISION_CONFIG`). Provider aliases: `glm`→`ZHIPUAI_API_KEY`,
   `qwen`→`DASHSCOPE_API_KEY`, `siliconflow`→`SILICONFLOW_API_KEY`,
-  `gemini`→`GEMINI_API_KEY`, `mineru`→`MINERU_TOKEN`
+  `gemini`→`GEMINI_API_KEY`, `mineru`→`MINERU_TOKEN`,
+  `agnes`→`AGNES_API_KEY`
   (raw env-var names like `ZHIPUAI_API_KEY` also work).
 - Manage: `set_key.py --list` (masked), `set_key.py --delete glm`, `set_key.py --path`.
 - Precedence: **real environment variables > `.env` file > config file**. If an

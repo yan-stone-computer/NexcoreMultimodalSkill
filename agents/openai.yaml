@@ -1,12 +1,15 @@
 interface:
-  display_name: "ModelVisionSkill"
-  short_description: "Give text-only models (DeepSeek/MiMo/GLM-4.5 etc.) eyes via free vision APIs (GLM/Qwen/SiliconFlow/Gemini/MinerU/local OCR) with auto fallback, plus browser-driven web engines (Doubao/Kimi/Tongyi/ChatGLM/Yuanbao) that rotate when logged-out quotas run out and keep going while logged in."
-  default_prompt: "Use the model-vision-skill skill to analyze the attached image with $vision.py."
+  display_name: "NexcoreMultimodalSkill"
+  short_description: "Give text-only models vision input plus Agnes image, image-editing, and video generation through one skill. Analyze screenshots, charts, photos, and documents with multi-engine fallback, or create and edit media when asked."
+  default_prompt: "Use the nexcore-multimodal-skill skill to inspect the referenced image or to create the requested image/video."
   example_prompts:
     - "Read the text in this screenshot"
     - "What error is shown in this terminal screenshot?"
     - "Describe this chart and its key values"
     - "Extract this PDF as Markdown"
+    - "Generate an image of a quiet tea house in the rain"
+    - "Turn this photo into a watercolor painting"
+    - "Animate this photo with gentle camera movement"
 
 policy:
   allow_implicit_invocation: true

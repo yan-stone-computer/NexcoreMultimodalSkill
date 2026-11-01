@@ -3,13 +3,13 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "model-vision-skill"
-version = "0.1.0"
-description = "Give text-only LLMs (DeepSeek, Xiaomi MiMo, GLM-4.5, etc.) eyes via 6 free vision engines with auto fallback, caching and document parsing"
+name = "nexcore-multimodal-skill"
+version = "0.2.0"
+description = "Give text-only LLMs vision input plus image, image-editing and video generation through one agent skill"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["deepseek", "vision", "multimodal", "ocr", "skill", "agent", "llm"]
+keywords = ["deepseek", "vision", "multimodal", "ocr", "image-generation", "video-generation", "skill", "agent", "llm"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -18,13 +18,14 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yan-stone-computer/ModelVisionSkill"
+Homepage = "https://github.com/yan-stone-computer/NexcoreMultimodalSkill"
 
 [project.scripts]
-model-vision-skill = "vision:entry"
+nexcore-multimodal = "vision:entry"
+nexcore-media = "agnes_api:main"
 
 [tool.setuptools]
-py-modules = ["vision", "analyze_image"]
+py-modules = ["vision", "analyze_image", "agnes_api"]
 packages = ["engines"]
 
 [tool.setuptools.package-dir]
