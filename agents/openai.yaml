@@ -1,14 +1,15 @@
 interface:
   display_name: "NexcoreMultimodalSkill"
-  short_description: "Give text-only models vision input plus local ComfyUI/Qwen image generation and editing, and Agnes image/video generation through one skill."
-  default_prompt: "Use the nexcore-multimodal-skill skill to inspect the referenced image or choose the appropriate local or remote media route."
+  short_description: "Use NexcoreVision as the primary OCR + CNN + VLM evidence architecture, plus local ComfyUI/Qwen image generation and Agnes image/video generation."
+  default_prompt: "Use the nexcore-multimodal-skill skill: inspect visual input through NexcoreVision evidence first, then choose local or remote media generation when requested."
   example_prompts:
-    - "Read the text in this screenshot"
+    - "Build a bounded evidence report for this screenshot"
     - "What error is shown in this terminal screenshot?"
     - "Describe this chart and its key values"
     - "Extract this PDF as Markdown"
     - "Generate an image of a quiet tea house in the rain"
     - "Generate this image locally with Qwen-Image-2.1"
+    - "Check whether local ComfyUI is installed and show me the install plan"
     - "Turn this photo into a watercolor painting"
     - "Animate this photo with gentle camera movement"
 

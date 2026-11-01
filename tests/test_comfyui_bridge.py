@@ -1,4 +1,6 @@
+import contextlib
 import importlib.util
+import io
 import os
 import sys
 import tempfile
@@ -79,7 +81,7 @@ class ComfyUIBridgeTests(unittest.TestCase):
 
     def test_unknown_command_is_rejected_before_launch(self):
         bridge = load_bridge()
-        with self.assertRaises(SystemExit):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             bridge.main(["shell", "whoami"])
 
 

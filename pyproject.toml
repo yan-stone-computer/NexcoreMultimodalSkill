@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nexcore-multimodal-skill"
-version = "0.3.0"
-description = "Give text-only LLMs vision input plus local ComfyUI/Qwen and Agnes image generation, image editing and video generation"
+version = "0.5.0"
+description = "NexcoreVision evidence architecture plus consent-gated local ComfyUI/Qwen deployment and Agnes media generation"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-keywords = ["deepseek", "vision", "multimodal", "ocr", "comfyui", "qwen-image", "image-generation", "video-generation", "skill", "agent", "llm"]
+keywords = ["deepseek", "vision", "multimodal", "ocr", "nexcorevision", "visual-evidence", "comfyui", "qwen-image", "image-generation", "video-generation", "skill", "agent", "llm"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -22,13 +22,29 @@ Homepage = "https://github.com/yan-stone-computer/NexcoreMultimodalSkill"
 
 [project.scripts]
 nexcore-multimodal = "vision:entry"
+nexcore-vision = "nexcore_vision:main"
 nexcore-comfyui = "comfyui_local:main"
+nexcore-comfyui-setup = "comfyui_setup:main"
 nexcore-media = "agnes_api:main"
 
 [tool.setuptools]
-py-modules = ["vision", "analyze_image", "comfyui_local", "agnes_api"]
+py-modules = ["vision", "analyze_image", "nexcore_vision", "comfyui_local", "comfyui_setup", "agnes_api"]
 packages = ["engines"]
 
 [tool.setuptools.package-dir]
 "" = "scripts"
 engines = "scripts/engines"
+
+[tool.setuptools.data-files]
+"share/nexcore-multimodal-skill/integrations/nexcorevision" = [
+  "integrations/nexcorevision/package.json",
+  "integrations/nexcorevision/LICENSE",
+  "integrations/nexcorevision/NOTICE.md",
+  "integrations/nexcorevision/README.md",
+]
+"share/nexcore-multimodal-skill/integrations/nexcorevision/src" = [
+  "integrations/nexcorevision/src/index.ts",
+  "integrations/nexcorevision/src/cli.ts",
+  "integrations/nexcorevision/src/deep_vision.py",
+  "integrations/nexcorevision/src/windows-ocr.ps1",
+]

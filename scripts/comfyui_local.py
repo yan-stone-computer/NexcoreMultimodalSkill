@@ -56,7 +56,9 @@ def resolve_cli(explicit: str | None = None) -> Path:
 
     raise FileNotFoundError(
         "ComfyUI Qwen CLI not found. Install/enable the comfyui-qwen-image "
-        "skill or set COMFYUI_QWEN_CLI to its scripts/comfyui_qwen.py path."
+        "skill, or run `python scripts/comfyui_setup.py check` and ask the user "
+        "before installing the backend. You can also set COMFYUI_QWEN_CLI to "
+        "the plugin's scripts/comfyui_qwen.py path."
     )
 
 
