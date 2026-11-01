@@ -1,13 +1,14 @@
 interface:
   display_name: "NexcoreMultimodalSkill"
-  short_description: "Give text-only models vision input plus Agnes image, image-editing, and video generation through one skill. Analyze screenshots, charts, photos, and documents with multi-engine fallback, or create and edit media when asked."
-  default_prompt: "Use the nexcore-multimodal-skill skill to inspect the referenced image or to create the requested image/video."
+  short_description: "Give text-only models vision input plus local ComfyUI/Qwen image generation and editing, and Agnes image/video generation through one skill."
+  default_prompt: "Use the nexcore-multimodal-skill skill to inspect the referenced image or choose the appropriate local or remote media route."
   example_prompts:
     - "Read the text in this screenshot"
     - "What error is shown in this terminal screenshot?"
     - "Describe this chart and its key values"
     - "Extract this PDF as Markdown"
     - "Generate an image of a quiet tea house in the rain"
+    - "Generate this image locally with Qwen-Image-2.1"
     - "Turn this photo into a watercolor painting"
     - "Animate this photo with gentle camera movement"
 

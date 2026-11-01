@@ -12,16 +12,19 @@
 
 </div>
 
-NexcoreMultimodalSkill combines two capabilities in one Agent Skill:
+NexcoreMultimodalSkill combines three capabilities in one Agent Skill:
 
 - **Visual input** through `vision.py`: inspect images, screenshots, charts, PDFs,
   Office files, and other documents with browser or API engines, fallback, and
   disk caching.
 - **Media output** through `agnes_api.py`: generate images, edit images, generate
   videos, and query asynchronous video tasks through Agnes AI.
+- **Local image generation** through `comfyui_local.py`: generate or edit images
+  with Qwen-Image-2.1 on the user's own ComfyUI installation.
 
-The two CLIs remain separate on purpose. A text-only agent gets a small, explicit
-choice between reading existing content and generating new content.
+The CLIs remain separate on purpose. A text-only agent gets a small, explicit
+choice between visual inspection, local Qwen generation/editing, and Agnes media
+generation.
 
 ## Quick start
 
@@ -64,7 +67,47 @@ Use `--engine <name>` to force an engine. Use
 `VISION_ENGINE_PRIORITY="gemini,glm,mineru,local"` to change the API fallback
 order.
 
-## Generate or edit media
+## Generate images locally with ComfyUI Qwen
+
+Install and enable the `comfyui-qwen-image` Agent Skill first. This repository
+does not download ComfyUI or model weights. The bridge auto-discovers the
+installed plugin; set `COMFYUI_QWEN_CLI` if it lives elsewhere.
+
+```bash
+# Check the local service in low-VRAM mode
+python scripts/comfyui_local.py health
+python scripts/comfyui_local.py start
+
+# Text → image, fully local
+python scripts/comfyui_local.py generate \
+  "A quiet tea house in the rain, cinematic lighting" \
+  --preset standard --width 1024 --height 1024
+
+# Image → image; pass reference images after the edit target
+python scripts/comfyui_local.py edit \
+  "Keep the face and pose unchanged; turn the background into soft watercolor" \
+  --image photo.png --preset standard
+
+python scripts/comfyui_local.py stop
+```
+
+Local defaults preserve `--lowvram`. Use `preview` for a quick check, `standard`
+for normal work, and `quality` only when extra detail is needed. Qwen-Image-2.1
+weights follow the Qwen Research License; this project does not grant commercial
+rights on the user's behalf.
+
+Configuration can live in the root `.env`:
+
+```text
+COMFYUI_QWEN_CLI=C:\path\to\comfyui_qwen.py
+COMFYUI_ROOT=D:\ComfyUI
+COMFYUI_URL=http://127.0.0.1:8188
+```
+
+See [references/comfyui-local.md](references/comfyui-local.md) for routing,
+memory-pressure, edit constraints, and output rules.
+
+## Generate or edit media with Agnes
 
 Agnes commands require `AGNES_API_KEY`.
 
@@ -119,6 +162,9 @@ GEMINI_API_KEY=
 MINERU_TOKEN=
 AGNES_API_KEY=
 AGNES_BASE_URL=https://apihub.agnes-ai.com/v1
+COMFYUI_QWEN_CLI=
+COMFYUI_ROOT=D:\ComfyUI
+COMFYUI_URL=http://127.0.0.1:8188
 ```
 
 At least one relevant provider key is enough for its route. Local OCR and the
@@ -144,10 +190,11 @@ The repository contains a standard `SKILL.md`, so it can be copied into any
 platform that supports Agent Skills. The installer also creates native config
 files for Codex, OpenCode, Cursor, Trae, WorkBuddy, and Claude Code.
 
-For an agent without a skill loader, provide these two command entry points:
+For an agent without a skill loader, provide these command entry points:
 
 ```bash
 python <skill-dir>/scripts/vision.py <file-or-url> --prompt "<question>"
+python <skill-dir>/scripts/comfyui_local.py generate "<prompt>" [options]
 python <skill-dir>/scripts/agnes_api.py <command> [options]
 ```
 
@@ -158,12 +205,14 @@ NexcoreMultimodalSkill/
 ├── SKILL.md                     # Agent routing and response rules
 ├── scripts/
 │   ├── vision.py                # Image/document understanding
+│   ├── comfyui_local.py         # Local Qwen-Image-2.1 bridge
 │   ├── agnes_api.py             # Image/video generation and analysis
 │   ├── set_key.py               # Persist provider keys
 │   ├── install.py               # Cross-platform installer
 │   └── engines/                 # Vision providers and local fallback
 ├── references/
 │   ├── web-engines.md           # Browser-driven vision SOP
+│   ├── comfyui-local.md         # Local ComfyUI routing and constraints
 │   └── agnes-api.md             # Agnes API reference
 ├── docs/media/                  # Image/video demo assets
 └── tests/                       # Offline contract and payload tests
